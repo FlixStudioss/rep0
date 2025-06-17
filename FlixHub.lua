@@ -1,15 +1,30 @@
 -- FlixHub - Created with Wind UI
-local Wind = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wind"))()
+local success, Wind
+success, Wind = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wind"))()
+end)
 
--- Creating the main window (force create our custom UI)
-Wind.Unload() -- If there's any existing UI instance, unload it first
-local MainWindow = Wind.New({
-    Title = "FlixHub",
-    Theme = "Dark",
-    Sizeable = true,
-    MinSize = UDim2.new(0, 450, 0, 300),
-    Position = UDim2.new(0.5, -225, 0.5, -150)
-})
+if not success then
+    warn("Failed to load Wind UI library: " .. tostring(Wind))
+    return
+end
+
+-- Creating the main window with proper error handling
+local MainWindow
+success, MainWindow = pcall(function()
+    return Wind:Window({
+        Title = "FlixHub",
+        Theme = "Dark",
+        Sizeable = true,
+        MinSize = UDim2.new(0, 450, 0, 300),
+        Position = UDim2.new(0.5, -225, 0.5, -150)
+    })
+end)
+
+if not success then
+    warn("Failed to create window: " .. tostring(MainWindow))
+    return
+end
 
 -- Creating tabs
 local MainTab = MainWindow:Tab("Main")
@@ -31,7 +46,9 @@ local function UpdatePosition()
             math.round(pos.Y * 10) / 10,
             math.round(pos.Z * 10) / 10
         )
-        PositionLabel:Set("Position: " .. tostring(roundedPos))
+        pcall(function()
+            PositionLabel:Set("Position: " .. tostring(roundedPos))
+        end)
     end
 end
 
@@ -45,25 +62,34 @@ PlayerPosition:Button("Copy Position", function()
             math.round(pos.Y * 10) / 10,
             math.round(pos.Z * 10) / 10
         )
-        setclipboard(tostring(roundedPos))
-        Wind:Notification({
-            Title = "Position Copied",
-            Content = "Player position copied to clipboard",
-            Duration = 3
-        })
+        pcall(function()
+            setclipboard(tostring(roundedPos))
+            Wind:Notification({
+                Title = "Position Copied",
+                Content = "Player position copied to clipboard",
+                Duration = 3
+            })
+        end)
     end
 end)
 
 -- Create a ScreenGui for our GEAR button
 local ScreenGui
-if not game.Players.LocalPlayer.PlayerGui:FindFirstChild("FlixHubGui") then
+pcall(function()
+    if not game.Players.LocalPlayer:FindFirstChild("PlayerGui") then
+        return
+    end
+    
     ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "FlixHubGui"
+    ScreenGui.Name = "FlixHubGear"
     ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.DisplayOrder = 100 -- Make sure it's visible above other GUIs
     ScreenGui.Parent = game.Players.LocalPlayer.PlayerGui
-else
-    ScreenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("FlixHubGui")
+end)
+
+if not ScreenGui then
+    warn("Failed to create ScreenGui for GEAR button")
+    return
 end
 
 -- Create GEAR button on screen (not in the UI)
@@ -79,31 +105,38 @@ GearButton.Font = Enum.Font.SourceSansBold
 GearButton.TextSize = 18
 GearButton.Parent = ScreenGui
 
+-- Add corner radius to make it look better
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 6)
+corner.Parent = GearButton
+
 -- Teleport function for GEAR button
 local teleportPosition = Vector3.new(0, 100, 0) -- Default teleport position, change as needed
 
 GearButton.MouseButton1Click:Connect(function()
     local player = game.Players.LocalPlayer
     if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPosition)
-        Wind:Notification({
-            Title = "Teleported",
-            Content = "Teleported to preset location",
-            Duration = 3
-        })
+        pcall(function()
+            player.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPosition)
+            Wind:Notification({
+                Title = "Teleported",
+                Content = "Teleported to preset location",
+                Duration = 3
+            })
+        end)
     end
 end)
 
 -- Update position label continuously
-game:GetService("RunService").RenderStepped:Connect(UpdatePosition)
+pcall(function()
+    game:GetService("RunService").RenderStepped:Connect(UpdatePosition)
+end)
 
--- Main Tab (Currently Empty as requested)
+-- Main Tab
 local MainSection = MainTab:Section("Welcome")
 MainSection:Label("Welcome to FlixHub!")
 
--- Make sure UI is displayed
-if MainWindow.Show then
-    MainWindow:Show()
-end
+-- Make the UI visible
+MainWindow:Show()
 
-print("FlixHub UI has been loaded successfully!") 
+print("FlixHub has been loaded successfully!") 
